@@ -34,6 +34,7 @@ func getDNSNames(buf []byte) []string {
 	return nil
 }
 
+// Get all the names in the latest format
 func getDNSNameList(buf []byte) []string {
 	if len(buf) == 0 {
 		return nil
