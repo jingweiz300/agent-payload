@@ -68,9 +68,15 @@ func NewV1DNSEncoder() DNSEncoder {
 	}
 }
 
-func (e *V1DNSEncoder) Encode(dns map[string]*DNSEntry) []byte {
+func (e *V1DNSEncoder) EncodeMapped(dns map[string]*DNSDatabaseEntry, indexToOFfset []int32) ([]byte, error) {
+	return nil, fmt.Errorf("EncodeMapped not valid in V1")
+}
+func (e *V1DNSEncoder) EncodeDomainDatabase(names []string) ([]byte, []int32, error) {
+	return nil, nil, fmt.Errorf("EncodeDomainDatabase not valid in V1")
+}
+func (e *V1DNSEncoder) Encode(dns map[string]*DNSEntry) ([]byte, error) {
 	if len(dns) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	bucketCount := getBucketCount(dns, e.BucketFactor)
@@ -116,7 +122,7 @@ func (e *V1DNSEncoder) Encode(dns map[string]*DNSEntry) []byte {
 
 	// Exit early if all the buckets are empty
 	if allBucketsEmpty {
-		return nil
+		return nil, nil
 	}
 
 	bucketBufferLength := 0
@@ -200,7 +206,7 @@ func (e *V1DNSEncoder) Encode(dns map[string]*DNSEntry) []byte {
 		copy(nameBuffer[position+bytesWritten:], name)
 	}
 
-	return buffer
+	return buffer, nil
 }
 
 func (e *V1DNSEncoder) varIntSize(value int) int {
@@ -416,4 +422,60 @@ func getBucketCount(dns map[string]*DNSEntry, bucketFactor float64) int {
 	}
 
 	return bucketCount
+}
+
+// GetDNS gets the DNS entries for the given IP from the given buffer
+func GetDNS(buf []byte, ip string) (string, []string, error) {
+	if len(buf) == 0 || ip == "" {
+		return "", nil, nil
+	}
+
+	switch buf[0] {
+	case dnsVersion1:
+		first, strings := getV1(buf, ip)
+		return first, strings, nil
+	}
+
+	return "", nil, fmt.Errorf("Unexpected version %v", buf[0])
+}
+
+func getDNSNames(buf []byte) ([]string, error) {
+	if len(buf) == 0 {
+		return nil, nil
+	}
+
+	switch buf[0] {
+	case dnsVersion1:
+		names := getDNSNamesV1(buf)
+		return names, nil
+	}
+	return nil, fmt.Errorf("Unexpected version %v", buf[0])
+}
+
+// IterateDNS invokes the callback function for each DNS entry for the given IP in the given buffer
+func IterateDNS(buf []byte, ip string, cb func(i, total int, entry string) bool) error {
+	if len(buf) == 0 || ip == "" {
+		return nil
+	}
+
+	switch buf[0] {
+	case dnsVersion1:
+		return iterateDNSV1(buf, ip, cb)
+	}
+	return fmt.Errorf("Unexpected version %v", buf[0])
+}
+
+// UnsafeIterateDNS invokes the callback function for each DNS entry for the given IP in the given buffer.
+// Each entry is a the slice from the overall buffer.  It should be copied before use
+func UnsafeIterateDNS(buf []byte, ip string, cb func(i, total int, entry []byte) bool) error {
+	if len(buf) == 0 || ip == "" {
+		return nil
+	}
+
+	switch buf[0] {
+	case dnsVersion1:
+		unsafeIterateDNSV1(buf, ip, cb)
+		return nil
+	}
+	return fmt.Errorf("Unexpected version %v", buf[0])
 }
