@@ -1361,6 +1361,7 @@ type Process struct {
 	ByteKey                []byte           `protobuf:"bytes,18,opt,name=byteKey,proto3" json:"byteKey,omitempty"`
 	ContainerByteKey       []byte           `protobuf:"bytes,19,opt,name=containerByteKey,proto3" json:"containerByteKey,omitempty"`
 	Networks               *ProcessNetworks `protobuf:"bytes,21,opt,name=networks" json:"networks,omitempty"`
+        Name                   string           `json:"name,omitempty"`
 }
 
 func (m *Process) Reset()                    { *m = Process{} }
