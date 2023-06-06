@@ -1,4 +1,4 @@
-module github.com/DataDog/agent-payload/v5
+module github.com/jingweiz300/agent-payload/v5
 
 go 1.17
 
